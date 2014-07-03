@@ -11,7 +11,7 @@
 /* TODO: fix this. This length may be variable. */
 #define TCP_HEADER_LEN 20
 
-#define PROTO_TAG_ATLAS	"ATLAS TDAQ"
+#define PROTO_TAG_ATLAS    "ATLAS TDAQ"
 
 /* 
    . Type ID (4 bytes)
@@ -60,59 +60,60 @@ static gint ett_atlas = -1;
 
 void proto_reg_handoff_atlas(void)
 {
-	static gboolean initialized=FALSE;
+    static gboolean initialized=FALSE;
 
     /*  Dissect all TCP packets. */
-	if (!initialized) {
-        initialized = TRUE;		
+    if (!initialized) {
+        initialized = TRUE;        
         atlas_handle = create_dissector_handle(dissect_atlas, proto_atlas);
-		dissector_add_uint("ip.proto", atlas_proto_num, atlas_handle);
-	}
+        dissector_add_uint("ip.proto", atlas_proto_num, atlas_handle);
+    }
 
 }
 
 void proto_register_atlas(void)
 {
-	/* A header field is something you can search/filter on.
-	 * 
-	 * We create a structure to register our fields. It consists of an
-	 * array of hf_register_info structures, each of which are of the format
-	 * {&(field id), {name, abbrev, type, display, strings, bitmask, blurb, HFILL}}.
-	 */
-	static hf_register_info hf[] = {
+    /* A header field is something you can search/filter on.
+     * 
+     * We create a structure to register our fields. It consists of an
+     * array of hf_register_info structures, each of which are of the format
+     * {&(field id), {name, abbrev, type, display, strings, bitmask, blurb, HFILL}}.
+     */
+    static hf_register_info hf[] = {
         
-		{ &hf_type_id,
-		{ "ATLAS Type ID", "atlas.type", FT_BYTES, BASE_NONE, NULL, 0x0, NULL, HFILL }},
+        { &hf_type_id,
+        { "ATLAS Type ID", "atlas.type", FT_BYTES, BASE_NONE, NULL, 0x0, NULL, HFILL }},
 
-		{ &hf_trans_id,
-		{ "ATLAS Transaction ID", "atlas.trans_id", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
+        { &hf_trans_id,
+        { "ATLAS Transaction ID", "atlas.trans_id", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
 
-		{ &hf_data_size,
-		{ "Data size", "atlas.size", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
+        { &hf_data_size,
+        { "Data size", "atlas.size", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
 
         /* For Request messages only */
-		{ &hf_event_id,
-		{ "ATLAS Event ID", "atlas.event_id", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},    
+        { &hf_event_id,
+        { "ATLAS Event ID", "atlas.event_id", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},    
 
-		{ &hf_frag_count,
-		{ "ATLAS Fragment Count", "atlas.frag_count", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
+        { &hf_frag_count,
+        { "ATLAS Fragment Count", "atlas.frag_count", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
 
-		{ &hf_max_frag,
-		{ "ATLAS Max Fragment", "atlas.max_frag", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
+        { &hf_max_frag,
+        { "ATLAS Max Fragment", "atlas.max_frag", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
 
-		{ &hf_min_frag,
-		{ "ATLAS Min Fragment", "atlas.min_frag", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
-	};
-	static gint *ett[] = {
+        { &hf_min_frag,
+        { "ATLAS Min Fragment", "atlas.min_frag", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
+    };
+
+    static gint *ett[] = {
         &ett_atlas
-	};
+    };
     
-	proto_atlas = proto_register_protocol(PROTO_TAG_ATLAS, "ATLAS TDAQ", "atlas");
-	proto_register_field_array(proto_atlas, hf, array_length(hf));
-	proto_register_subtree_array(ett, array_length(ett));
-	register_dissector("atlas", dissect_atlas, proto_atlas);
+    proto_atlas = proto_register_protocol(PROTO_TAG_ATLAS, "ATLAS TDAQ", "atlas");
+    proto_register_field_array(proto_atlas, hf, array_length(hf));
+    proto_register_subtree_array(ett, array_length(ett));
+    register_dissector("atlas", dissect_atlas, proto_atlas);
 }
-	
+    
 
 static guint32 from_little_endian(guint32 num)
 {
@@ -153,23 +154,23 @@ static void get_min_max_frags(tvbuff_t *tvb, guint32 frag_offset, guint32 frag_c
 static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
 {
     /* Our data starts where the TCP header ends. */
-	gint base_offset = TCP_HEADER_LEN;
-	guint32 packet_len, typeID, trans_id, data_size,
+    gint base_offset = TCP_HEADER_LEN;
+    guint32 packet_len, typeID, trans_id, data_size,
             event_id, frag_bytes, frag_count,
             max_frag, max_frag_offset,
             min_frag, min_frag_offset;
     tvbuff_t *tcptvb;
-	char type_str[20] = "";
+    char type_str[20] = "";
 
 
     /* Update the Protocol column. Also, clear Info column. */
-	if(check_col(pinfo->cinfo,COL_INFO))
-		col_clear(pinfo->cinfo,COL_INFO);
+    if(check_col(pinfo->cinfo,COL_INFO))
+        col_clear(pinfo->cinfo,COL_INFO);
     if(check_col(pinfo->cinfo, COL_PROTOCOL))
-	    col_set_str(pinfo->cinfo, COL_PROTOCOL, PROTO_TAG_ATLAS);
+        col_set_str(pinfo->cinfo, COL_PROTOCOL, PROTO_TAG_ATLAS);
 
-	typeID = tvb_get_ntohl(tvb, base_offset);
-	trans_id = from_little_endian(tvb_get_ntohl(tvb, base_offset+ATLAS_FIELD_LEN));
+    typeID = tvb_get_ntohl(tvb, base_offset);
+    trans_id = from_little_endian(tvb_get_ntohl(tvb, base_offset+ATLAS_FIELD_LEN));
     data_size = from_little_endian(tvb_get_ntohl(tvb, base_offset+2*ATLAS_FIELD_LEN));
     packet_len = ATLAS_HEADER_LEN + data_size;
 
@@ -180,11 +181,8 @@ static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
     else
         strcpy(type_str, "Unknown");
 
-
-    if (check_col(pinfo->cinfo, COL_INFO)) 
-    {
+    if (check_col(pinfo->cinfo, COL_INFO))
         col_add_fstr(pinfo->cinfo, COL_INFO, "ATLAS Type ID: %s; ATLAS Transaction ID: %u", type_str, trans_id);
-    }
 
     /* This is where we register the protocol tree items: Type ID, Transaction ID and so forth. 
        Items added will be shown in the packet pane (when clicking a given packet).    
@@ -223,4 +221,4 @@ static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
             proto_tree_add_uint(atlas_tree, hf_min_frag, tvb, min_frag_offset, ATLAS_FIELD_LEN, min_frag);
         }
     }
-}	
+}    
