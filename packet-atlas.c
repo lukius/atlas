@@ -163,13 +163,14 @@ static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
     char type_str[20] = "";
 
 
+
     /* Update the Protocol column. Also, clear Info column. */
     if(check_col(pinfo->cinfo,COL_INFO))
         col_clear(pinfo->cinfo,COL_INFO);
     if(check_col(pinfo->cinfo, COL_PROTOCOL))
         col_set_str(pinfo->cinfo, COL_PROTOCOL, PROTO_TAG_ATLAS);
 
-    typeID = tvb_get_ntohl(tvb, base_offset);
+    typeID = from_little_endian(tvb_get_ntohl(tvb, base_offset));
     trans_id = from_little_endian(tvb_get_ntohl(tvb, base_offset+ATLAS_FIELD_LEN));
     data_size = from_little_endian(tvb_get_ntohl(tvb, base_offset+2*ATLAS_FIELD_LEN));
     packet_len = ATLAS_HEADER_LEN + data_size;
@@ -220,5 +221,6 @@ static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
             proto_tree_add_uint(atlas_tree, hf_max_frag, tvb, max_frag_offset, ATLAS_FIELD_LEN, max_frag);
             proto_tree_add_uint(atlas_tree, hf_min_frag, tvb, min_frag_offset, ATLAS_FIELD_LEN, min_frag);
         }
+
     }
 }    
