@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <glib.h>
 #include <epan/packet.h>
+#include <epan/to_str.h>
+
 
 #include <string.h>
 
@@ -13,7 +15,7 @@
 
 #define PROTO_TAG_ATLAS    "ATLAS TDAQ"
 
-/* 
+/*
    . Type ID (4 bytes)
    . Transaction ID (4 bytes)
    . Data size (4 bytes)
@@ -31,9 +33,10 @@
 #define FRAGS_OFFSET 16
 
 /* Protocol constants */
-#define REQUEST_ID 0x20dfdc00 
-#define RESPONSE_ID 0x21dfdc00
-
+#define REQUEST_ID 0x00DCDF00
+#define RESPONSE_ID 0x00DCDF01
+#define REQUEST_MSG "dcm -> hltsv - Update Message"
+#define RESPONSE_MSG "hltsv -> dcm - L1 Result Assign Message"
 
 /* Wireshark ID of the ATLAS protocol */
 static int proto_atlas = -1;
@@ -64,7 +67,7 @@ void proto_reg_handoff_atlas(void)
 
     /*  Dissect all TCP packets. */
     if (!initialized) {
-        initialized = TRUE;        
+        initialized = TRUE;
         atlas_handle = create_dissector_handle(dissect_atlas, proto_atlas);
         dissector_add_uint("ip.proto", atlas_proto_num, atlas_handle);
     }
@@ -74,13 +77,13 @@ void proto_reg_handoff_atlas(void)
 void proto_register_atlas(void)
 {
     /* A header field is something you can search/filter on.
-     * 
+     *
      * We create a structure to register our fields. It consists of an
      * array of hf_register_info structures, each of which are of the format
      * {&(field id), {name, abbrev, type, display, strings, bitmask, blurb, HFILL}}.
      */
     static hf_register_info hf[] = {
-        
+
         { &hf_type_id,
         { "ATLAS Type ID", "atlas.type", FT_BYTES, BASE_NONE, NULL, 0x0, NULL, HFILL }},
 
@@ -92,7 +95,7 @@ void proto_register_atlas(void)
 
         /* For Request messages only */
         { &hf_event_id,
-        { "ATLAS Event ID", "atlas.event_id", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},    
+        { "ATLAS Event ID", "atlas.event_id", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
 
         { &hf_frag_count,
         { "ATLAS Fragment Count", "atlas.frag_count", FT_UINT32, BASE_DEC, NULL, 0x0, NULL, HFILL }},
@@ -107,13 +110,15 @@ void proto_register_atlas(void)
     static gint *ett[] = {
         &ett_atlas
     };
-    
+
     proto_atlas = proto_register_protocol(PROTO_TAG_ATLAS, "ATLAS TDAQ", "atlas");
     proto_register_field_array(proto_atlas, hf, array_length(hf));
     proto_register_subtree_array(ett, array_length(ett));
     register_dissector("atlas", dissect_atlas, proto_atlas);
+
+
 }
-    
+
 
 static guint32 from_little_endian(guint32 num)
 {
@@ -176,19 +181,19 @@ static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
     packet_len = ATLAS_HEADER_LEN + data_size;
 
     if(typeID == REQUEST_ID)
-        strcpy(type_str, "1 (Request)");
+        strcpy(type_str, REQUEST_MSG);
     else if (typeID == RESPONSE_ID)
-        strcpy(type_str, "2 (Response)");
+        strcpy(type_str, RESPONSE_MSG);
     else
         strcpy(type_str, "Unknown");
 
     if (check_col(pinfo->cinfo, COL_INFO))
         col_add_fstr(pinfo->cinfo, COL_INFO, "ATLAS Type ID: %s; ATLAS Transaction ID: %u", type_str, trans_id);
 
-    /* This is where we register the protocol tree items: Type ID, Transaction ID and so forth. 
-       Items added will be shown in the packet pane (when clicking a given packet).    
+    /* This is where we register the protocol tree items: Type ID, Transaction ID and so forth.
+       Items added will be shown in the packet pane (when clicking a given packet).
     */
-    if(tree) 
+    if(tree)
     {
         proto_item *ti = NULL;
         proto_tree *atlas_tree = NULL;
@@ -223,4 +228,14 @@ static void dissect_atlas(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
         }
 
     }
-}    
+
+    /* Here we log packet information */
+
+    gchar src_add[20] = "";
+    gchar dst_add[20] = "";
+
+    address_to_str_buf(&pinfo -> net_src, src_add, 20);
+    address_to_str_buf(&pinfo -> net_dst, dst_add, 20);
+    g_print("Packet %s -> %s", src_add, dst_add);
+    g_print("PKT typeID: %#x \n", typeID);
+}
